@@ -67,9 +67,9 @@ else
 fi
 
 #add VLAN interface
-if [[ -z $(cat /etc/network/interfaces | grep "${VLAN_IF}") ]]; then
+if [[ -z $(cat /etc/network/interfaces | grep -v "^#" | grep "${VLAN_IF}") ]]; then
 
-echo install
+echo install vlan..
 cat <<EOF >> /etc/network/interfaces
 
 auto ${VLAN_IF}
