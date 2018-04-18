@@ -53,6 +53,8 @@ fi
 systemctl restart networking.service
 fi
 
+EXT_IP=$(ifconfig ${EXTERNAL_IF} | grep "inet\ addr" | awk -F":" {' print $2 '} | awk {' print $1 '})
+echo "EXT_IP1= "${EXT_IP}
 # add nameserver if it need
 TEST_NS=$(cat /etc/resolv.conf | grep "^nameserver")
 if [[ -z "${TEST_NS}" ]]; then
@@ -91,3 +93,36 @@ if [ ! -x "$(command -v nginx)" ]; then
 else
         echo "nginx had been already installed"
 fi
+
+# check if openssl was installed
+if [ ! -x "$(command -v openssl)" ]; then
+        apt-get install -y openssl
+else
+        echo "openssl had been already installed"
+fi
+
+# generate root certificate
+openssl genrsa -out /etc/ssl/private/root-ca.key 2048
+openssl req -x509 -days 365 -new -nodes -key /etc/ssl/private/root-ca.key -sha256 -out /etc/ssl/certs/root-ca.crt -subj "/C=UA/ST=Kharkiv/L=Kharkiv/O=Mirantis/OU=Devops/CN=rootCA"
+# generate nginx cert
+openssl genrsa -out /etc/ssl/private/web.key 2048
+openssl req -nodes -new -sha256 -key /etc/ssl/private/web.key -out /etc/ssl/certs/web.csr -subj "/C=UA/ST=Kharkiv/L=Kharkiv/O=Mirantis/OU=Devops/CN=vm1"
+openssl x509 -req -extfile <(printf "subjectAltName=IP:$EXT_IP,DNS:$(hostname -f)") -days 365 -in /etc/ssl/certs/web.csr -CA /etc/ssl/certs/root-ca.crt -CAkey /etc/ssl/private/root-ca.key -CAcreateserial -out /etc/ssl/certs/web.crt
+
+# add SSL_CHAIN
+cat /etc/ssl/certs/web.crt /etc/ssl/certs/root-ca.crt > /etc/ssl/certs/web-bundle.crt
+SSL_KEY="/etc/ssl/private/web.key"
+SSL_CHAIN="/etc/ssl/certs/web-bundle.crt"
+
+cat <<EOF >/etc/nginx/sites-available/default
+server {
+        listen $NGINX_PORT ssl;
+        ssl on;
+        ssl_certificate ${SSL_CHAIN};
+        ssl_certificate_key ${SSL_KEY};
+        location / {
+                proxy_pass http://$APACHE_VLAN_IP;
+        }
+}
+EOF
+service nginx restart
