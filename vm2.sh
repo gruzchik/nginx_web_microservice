@@ -42,3 +42,10 @@ TEST_NS=$(cat /etc/resolv.conf | grep "^nameserver")
 if [[ -z "${TEST_NS}" ]]; then
 	echo "nameserver 8.8.8.8" >> /etc/resolv.conf
 fi
+
+# check if apache2 was installed
+if [ ! -x "$(command -v apache2)" ]; then
+        apt-get install -y apache2
+else
+        echo "apache had been already installed"
+fi
