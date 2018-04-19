@@ -99,6 +99,7 @@ fi
 # check if openssl was installed
 if [ ! -x "$(command -v openssl)" ]; then
         apt-get install -y openssl
+	apt-get install -y ca-certificates
 else
         echo "openssl had been already installed"
 fi
