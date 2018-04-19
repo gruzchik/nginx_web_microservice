@@ -51,7 +51,7 @@ if [[ -z "${TEST_NS}" ]]; then
 fi
 
 # check if apache2 was installed
-if [ ! -x "$(command -v apache2)" ]; then
+if [ ! -x "$(command -v apache2ctl)" ]; then
         apt-get install -y apache2
 else
         echo "apache had been already installed"
