@@ -21,18 +21,10 @@ EXT_IP=$(echo ${EXT_IP} | tr -d \”| tr -d \")
 #echo "APACHE_VLAN_IP= "${APACHE_VLAN_IP}
 #exit
 
-
-#EX_IF=$(cat ${SCRIPTPATH}/vm1.config | grep "^EXTERNAL_IF=" | awk -F"=" {' print $2'}| tr -d \”| tr -d \")
-#EXT_IP=$(cat ${SCRIPTPATH}/vm1.config | awk {' print $1 '} | grep "^EXT_IP=" | awk -F"=" {' print $2'}| tr -d \”| tr -d \")
-#EXT_GW=$(cat ${SCRIPTPATH}/vm1.config | grep "^EXT_GW=" | awk -F"=" {' print $2'}| tr -d \”| tr -d \")
-#V_IF=$(cat ${SCRIPTPATH}/vm1.config | grep "^INTERNAL_IF=" | awk -F"=" {' print $2'}| tr -d \”)
-#V_N=$(cat ${SCRIPTPATH}/vm1.config | grep "^VLAN=" | awk -F"=" {' print $2'}| tr -d \”)
-#V_IP=$(cat ${SCRIPTPATH}/vm1.config | grep "^INT_IP=" | awk -F"=" {' print $2'}| awk -F="/" {' print $1 '}| awk -F"/" {' print $1 '})
-
 VLAN_IF=${INTERNAL_IF}.${VLAN}
 echo "vlan if="${VLAN_IF}
 
-# test external_if
+# test and add external_if
 if [[ -z $(cat /etc/network/interfaces | grep -v "^#" | grep "${EXTERNAL_IF}") ]]; then
 
 if [[ "${EXT_IP}" == "DHCP" ]]; then
@@ -55,6 +47,7 @@ fi
 
 EXT_IP=$(ifconfig ${EXTERNAL_IF} | grep "inet\ addr" | awk -F":" {' print $2 '} | awk {' print $1 '})
 echo "EXT_IP1= "${EXT_IP}
+
 # add nameserver if it need
 TEST_NS=$(cat /etc/resolv.conf | grep "^nameserver")
 if [[ -z "${TEST_NS}" ]]; then
@@ -105,9 +98,10 @@ fi
 openssl genrsa -out /etc/ssl/private/root-ca.key 2048
 openssl req -x509 -days 365 -new -nodes -key /etc/ssl/private/root-ca.key -sha256 -out /etc/ssl/certs/root-ca.crt -subj "/C=UA/ST=Kharkiv/L=Kharkiv/O=Mirantis/OU=Devops/CN=rootCA"
 # generate nginx cert
+HOSTT=$(hostname -f); if [ $? -eq 0 ] && [[ "${HOSTT}" != 'vm1' ]] && [ -n "${HOSTT}" ]; then HOSTNAME_F=",DNS:$(hostname -f)"; else HOSTNAME_F=""; fi
 openssl genrsa -out /etc/ssl/private/web.key 2048
 openssl req -nodes -new -sha256 -key /etc/ssl/private/web.key -out /etc/ssl/certs/web.csr -subj "/C=UA/ST=Kharkiv/L=Kharkiv/O=Mirantis/OU=Devops/CN=vm1"
-openssl x509 -req -extfile <(printf "subjectAltName=IP:$EXT_IP,DNS:$(hostname -f)") -days 365 -in /etc/ssl/certs/web.csr -CA /etc/ssl/certs/root-ca.crt -CAkey /etc/ssl/private/root-ca.key -CAcreateserial -out /etc/ssl/certs/web.crt
+openssl x509 -req -extfile <(printf "subjectAltName=IP:${EXT_IP}${HOSTNAME_F}") -days 365 -in /etc/ssl/certs/web.csr -CA /etc/ssl/certs/root-ca.crt -CAkey /etc/ssl/private/root-ca.key -CAcreateserial -out /etc/ssl/certs/web.crt
 
 # add SSL_CHAIN
 cat /etc/ssl/certs/web.crt /etc/ssl/certs/root-ca.crt > /etc/ssl/certs/web-bundle.crt
