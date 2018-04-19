@@ -18,6 +18,16 @@ fi
 
 VLAN_IF=${INTERNAL_IF}.${VLAN}
 echo "vlan if= ${VLAN_IF}"
+# add INT interface
+if [[ -z $(cat /etc/network/interfaces | grep -v "^#" | grep "${INTERNAL_IF}") ]]; then
+echo install int..
+cat <<EOF >> /etc/network/interfaces
+
+auto ${INTERNAL_IF}
+iface ${INTERNAL_IF} inet static
+address ${INT_IP}
+EOF
+fi
 # add VLAN interface
 if [[ -z $(cat /etc/network/interfaces | grep -v "^#" | grep "${VLAN_IF}") ]]; then
 echo install vlan..
@@ -25,11 +35,12 @@ cat <<EOF >> /etc/network/interfaces
 
 auto ${VLAN_IF}
 iface ${VLAN_IF} inet static
-address ${INT_IP}
+address ${APACHE_VLAN_IP}
 vlan_raw_device ${INTERNAL_IF}
 EOF
 
 systemctl restart networking.service
+route del default
 route add default gw ${GW_IP}
 fi
 

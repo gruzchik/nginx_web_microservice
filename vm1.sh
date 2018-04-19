@@ -61,6 +61,16 @@ else
         echo "vlan had been already installed"
 fi
 
+# add INT interface
+if [[ -z $(cat /etc/network/interfaces | grep -v "^#" | grep "${INTERNAL_IF}") ]]; then
+echo install int..
+cat <<EOF >> /etc/network/interfaces
+
+auto ${INTERNAL_IF}
+iface ${INTERNAL_IF} inet static
+address ${INT_IP}
+EOF
+fi
 #add VLAN interface
 if [[ -z $(cat /etc/network/interfaces | grep -v "^#" | grep "${VLAN_IF}") ]]; then
 
@@ -69,8 +79,7 @@ cat <<EOF >> /etc/network/interfaces
 
 auto ${VLAN_IF}
 iface ${VLAN_IF} inet static
-address ${INT_IP}
-#netmask 255.255.255.0
+address ${VLAN_IP}
 vlan_raw_device ${INTERNAL_IF}
 EOF
 
@@ -96,11 +105,11 @@ fi
 
 # generate root certificate
 openssl genrsa -out /etc/ssl/private/root-ca.key 2048
-openssl req -x509 -days 365 -new -nodes -key /etc/ssl/private/root-ca.key -sha256 -out /etc/ssl/certs/root-ca.crt -subj "/C=UA/ST=Kharkiv/L=Kharkiv/O=Mirantis/OU=Devops/CN=rootCA"
+openssl req -x509 -days 365 -new -nodes -key /etc/ssl/private/root-ca.key -sha256 -out /etc/ssl/certs/root-ca.crt -subj "/C=UA/ST=Kharkiv/L=Kharkiv/O=Nure/OU=Admin/CN=rootCA"
 # generate nginx cert
 HOSTT=$(hostname -f); if [ $? -eq 0 ] && [[ "${HOSTT}" != 'vm1' ]] && [ -n "${HOSTT}" ]; then HOSTNAME_F=",DNS:$(hostname -f)"; else HOSTNAME_F=""; fi
 openssl genrsa -out /etc/ssl/private/web.key 2048
-openssl req -nodes -new -sha256 -key /etc/ssl/private/web.key -out /etc/ssl/certs/web.csr -subj "/C=UA/ST=Kharkiv/L=Kharkiv/O=Mirantis/OU=Devops/CN=vm1"
+openssl req -nodes -new -sha256 -key /etc/ssl/private/web.key -out /etc/ssl/certs/web.csr -subj "/C=UA/ST=Kharkiv/L=Kharkiv/O=Datacenter/OU=Server/CN=vm1"
 openssl x509 -req -extfile <(printf "subjectAltName=IP:${EXT_IP}${HOSTNAME_F}") -days 365 -in /etc/ssl/certs/web.csr -CA /etc/ssl/certs/root-ca.crt -CAkey /etc/ssl/private/root-ca.key -CAcreateserial -out /etc/ssl/certs/web.crt
 
 # add SSL_CHAIN
