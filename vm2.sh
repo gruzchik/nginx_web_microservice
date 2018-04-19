@@ -16,11 +16,6 @@ fi
 #echo "APACHE_VLAN_IP= "${APACHE_VLAN_IP}
 #exit
 
-#V_IF=$(cat vm2.config | grep "^INTERNAL_IF=" | awk -F"=" {' print $2 '} | tr -d \")
-#V_N=$(cat vm2.config | grep "^VLAN=" | awk -F"=" {' print $2 '} | tr -d \")
-#V_IP=$(cat vm2.config | grep "^INT_IP=" | awk -F"=" {' print $2 '})
-#V_GW=$(cat vm2.config | grep "^GW_IP=" | awk -F"=" {' print $2 '})
-
 VLAN_IF=${INTERNAL_IF}.${VLAN}
 echo "vlan if= ${VLAN_IF}"
 # add VLAN interface
@@ -38,6 +33,7 @@ systemctl restart networking.service
 route add default gw ${GW_IP}
 fi
 
+# add nameserver if it need
 TEST_NS=$(cat /etc/resolv.conf | grep "^nameserver")
 if [[ -z "${TEST_NS}" ]]; then
 	echo "nameserver 8.8.8.8" >> /etc/resolv.conf
@@ -49,3 +45,9 @@ if [ ! -x "$(command -v apache2)" ]; then
 else
         echo "apache had been already installed"
 fi
+
+# listen IP for apache
+APACHE_LISTEN_IP=$(ifconfig $INTERNAL_IF.$VLAN | grep 'inet\ addr'| awk -F":" {' print $2 '} | awk {' print $1 '})
+cp /etc/apache2/ports.conf /etc/apache2/ports.conf_def
+echo "Listen ${APACHE_LISTEN_IP}:80" > /etc/apache2/ports.conf
+service apache2 restart
