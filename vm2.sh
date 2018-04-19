@@ -18,6 +18,7 @@ fi
 
 VLAN_IF=${INTERNAL_IF}.${VLAN}
 echo "vlan if= ${VLAN_IF}"
+
 # add INT interface
 if [[ -z $(cat /etc/network/interfaces | grep -v "^#" | grep "${INTERNAL_IF}") ]]; then
 echo install int..
@@ -28,6 +29,14 @@ iface ${INTERNAL_IF} inet static
 address ${INT_IP}
 EOF
 fi
+
+# check if vlan was installed
+if [ ! -x "$(command -v vconfig)" ]; then
+        apt-get install -y vlan
+else
+        echo "vlan package was already installed"
+fi
+
 # add VLAN interface
 if [[ -z $(cat /etc/network/interfaces | grep -v "^#" | grep "${VLAN_IF}") ]]; then
 echo install vlan..
@@ -54,7 +63,7 @@ fi
 if [ ! -x "$(command -v apache2ctl)" ]; then
         apt-get install -y apache2
 else
-        echo "apache had been already installed"
+        echo "apache2 was already installed"
 fi
 
 # listen IP for apache

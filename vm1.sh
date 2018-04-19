@@ -58,7 +58,7 @@ fi
 if [ ! -x "$(command -v vconfig)" ]; then
         apt-get install -y vlan
 else
-        echo "vlan had been already installed"
+        echo "vlan package was already installed"
 fi
 
 # add INT interface
@@ -93,7 +93,7 @@ fi
 if [ ! -x "$(command -v nginx)" ]; then
         apt-get install -y nginx
 else
-        echo "nginx had been already installed"
+        echo "nginx was already installed"
 fi
 
 # check if openssl was installed
@@ -101,7 +101,7 @@ if [ ! -x "$(command -v openssl)" ]; then
         apt-get install -y openssl
 	apt-get install -y ca-certificates
 else
-        echo "openssl had been already installed"
+        echo "openssl and ca-certificates were already installed"
 fi
 
 # generate root certificate
@@ -129,4 +129,5 @@ server {
         }
 }
 EOF
+ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 service nginx restart
